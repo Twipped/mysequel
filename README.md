@@ -46,9 +46,11 @@ NPM: `npm install quint`
 
 - `mysql2Pool = pool.getPool()` - Returns the raw mysql2 Pool object used internally. If the pool has not yet been initialized by a query request, this does so.
 
-- `pool.getRawConnection() => connection` - Returns a promise that resolves with an active connection *after* any bootstrap queries have completed. Note, you must call `connection.release()` once you are finished with this connection to allow it to return to the pool.
+- `pool.getConnection() => connection` - Returns a promise that resolves with an active connection *after* any bootstrap queries have completed. Note, you must call `connection.release()` once you are finished with this connection to allow it to return to the pool.
 
-- `pool.getDisposedRawConnection() => connection` - Returns a [Bluebird Disposer](http://bluebirdjs.com/docs/api/disposer.html) for a connection, which automatically releases the connection after usage. See [Promise.using()](http://bluebirdjs.com/docs/api/promise.using.html) for more details.
+- `pool.getDisposedConnection() => connection` - Returns a [Bluebird Disposer](http://bluebirdjs.com/docs/api/disposer.html) for a connection, which automatically releases the connection after usage. See [Promise.using()](http://bluebirdjs.com/docs/api/promise.using.html) for more details.
+
+- `pool.getRawConnection()` && `pool.getDisposedRawConnection()` - Same as above, but resolves with the mysql Connection object instead of a Quint connection.
 
 - `pool.close() => null` - Returns a promise that resolves after all pending queries have completed and all connections in the pool have terminated.
 

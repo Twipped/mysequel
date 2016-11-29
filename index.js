@@ -27,6 +27,8 @@ module.exports = exports = function makeQuint (options) {
 	var pingTimer;
 	var quint = new Emitter();
 
+	quint._quint = 'pool';
+
 	quint.options = options;
 
 	quint.getPool = () => {
@@ -149,54 +151,30 @@ module.exports = exports = function makeQuint (options) {
 		return query.connection.query(query, query.values);
 	};
 
-	quint.transaction = (tOptions) => {
-		tOptions = Object.assign({
+	quint.getConnection = (cOptions) => {
+		cOptions = Object.assign({
 			prepared: options.prepared,
 			namedPlaceholders: options.namedPlaceholders,
 			transactionAutoRollback: options.transactionAutoRollback,
 			tidyStacks: options.tidyStacks,
 			connection: null,
-		}, tOptions);
+		}, cOptions);
 
-		var mustRelease = !tOptions.connection;
-
-		function start () {
-			return Promise.resolve(tOptions.connection || quint.getRawConnection())
-				.then((connection) =>
-					Promise.fromCallback((cb) => connection.beginTransaction(cb))
-						.then(() => connection));
-		}
-
-		return start().then((connection) => {
+		return Promise.resolve(cOptions.connection || quint.getRawConnection()).then((connection) => {
 			var open = true;
 
-			var commit = Promise.promisify(connection.commit, { context: connection });
-			var rollback = Promise.promisify(connection.rollback, { context: connection });
+			var connectionWrapper = {
+				_quint: 'connection',
 
-			var transaction = {
-				commit (passthru) {
-					if (!open) return Promise.reject(new Error('Cannot commit a finished transaction.'));
-
-					return commit().then(() => {
-						open = false;
-						if (mustRelease) connection.release();
-						return passthru;
-					});
-				},
-
-				rollback (passthru) {
-					if (!open) return Promise.reject(new Error('Cannot rollback a finished transaction.'));
-
-					return rollback().then(() => {
-						open = false;
-						if (mustRelease) connection.release();
-						return passthru;
-					});
+				release (passthru) {
+					open = false;
+					connection.release();
+					return passthru;
 				},
 
 				destroy (passthru) {
 					open = false;
-					if (mustRelease) connection.destroy();
+					connection.destroy();
 					return passthru;
 				},
 
@@ -204,7 +182,7 @@ module.exports = exports = function makeQuint (options) {
 					return open;
 				},
 
-				get connection () {
+				get rawConnection () {
 					return connection;
 				},
 			};
@@ -213,14 +191,14 @@ module.exports = exports = function makeQuint (options) {
 				var time = Date.now();
 				var fn = queries[key];
 
-				transaction[key] = (sql, values, opts) => {
+				connectionWrapper[key] = (sql, values, opts) => {
 					var query = typeof sql === 'object' ? sql : { sql, values };
 
 					query = Object.assign({
-						prepared: tOptions.prepared,
-						namedPlaceholders: tOptions.namedPlaceholders,
-						transactionAutoRollback: tOptions.transactionAutoRollback,
-						tidyStacks: tOptions.tidyStacks,
+						prepared: cOptions.prepared,
+						namedPlaceholders: cOptions.namedPlaceholders,
+						transactionAutoRollback: cOptions.transactionAutoRollback,
+						tidyStacks: cOptions.tidyStacks,
 					}, query, opts || {}, {
 						retry: false,
 						retryCount: 0,
@@ -237,23 +215,13 @@ module.exports = exports = function makeQuint (options) {
 							},
 							(err) => {
 								quint.emit('query-error', err, key, query, Date.now() - time);
-
-								// if a query failed but the connection did not close,
-								// rollback the transaction automatically
-								if (!err.fatal && query.transactionAutoRollback) {
-									return transaction.rollback()
-										.then(() => Promise.reject(err));
-								} else if (err.fatal) {
-									transaction.destroy();
-								}
-
 								return Promise.reject(err);
 							}
 						);
 				};
 			});
 
-			transaction.queryStream = (sql, values, opts) => {
+			connectionWrapper.queryStream = (sql, values, opts) => {
 				var query = typeof sql === 'object' ? sql : { sql, values };
 
 				query = Object.assign({
@@ -262,6 +230,84 @@ module.exports = exports = function makeQuint (options) {
 
 				return connection.query(query, query.values);
 			};
+
+			return connectionWrapper;
+		});
+	};
+
+	quint.transaction = (tOptions) => {
+		tOptions = Object.assign({
+			prepared: options.prepared,
+			namedPlaceholders: options.namedPlaceholders,
+			transactionAutoRollback: options.transactionAutoRollback,
+			tidyStacks: options.tidyStacks,
+			connection: null,
+		}, tOptions);
+
+		function start () {
+			return quint.getConnection(tOptions)
+				.then((connection) =>
+					Promise.fromCallback((cb) => connection.rawConnection.beginTransaction(cb))
+						.then(() => connection));
+		}
+
+		return start().then((connection) => {
+			var rawC = connection.rawConnection;
+			var commit = Promise.promisify(rawC.commit, { context: rawC });
+			var rollback = Promise.promisify(rawC.rollback, { context: rawC });
+
+			var transaction = Object.create(connection);
+
+			transaction.commit = (passthru) => {
+				if (!connection.isOpen) return Promise.reject(new Error('Cannot commit a finished transaction.'));
+
+				return commit().then(() => {
+					connection.release();
+					return passthru;
+				});
+			};
+
+			transaction.rollback = (passthru) => {
+				if (!connection.isOpen) return Promise.reject(new Error('Cannot rollback a finished transaction.'));
+
+				return rollback().then(() => {
+					connection.release();
+					return passthru;
+				});
+			};
+
+			// transactions cannot be released, only committed or rolled back
+			transaction.release = undefined;
+
+			Object.keys(queries).forEach((key) => {
+				transaction[key] = (sql, values, opts) => {
+					var query = typeof sql === 'object' ? sql : { sql, values };
+
+					query = Object.assign({
+						prepared: tOptions.prepared,
+						namedPlaceholders: tOptions.namedPlaceholders,
+						transactionAutoRollback: tOptions.transactionAutoRollback,
+						tidyStacks: tOptions.tidyStacks,
+					}, query, opts || {}, {
+						retry: false,
+						retryCount: 0,
+						connection,
+					});
+
+					return connection[key](query).catch((err) => {
+						// if a query failed but the connection did not close,
+						// rollback the transaction automatically
+						if (!err.fatal && query.transactionAutoRollback) {
+							return transaction.rollback()
+								.then(() => Promise.reject(err));
+						} else if (err.fatal) {
+							transaction.destroy();
+						}
+
+						return Promise.reject(err);
+					});
+				};
+			});
 
 			return transaction;
 		});
