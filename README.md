@@ -4,7 +4,7 @@ A best-practices abstraction of [node-mysql2](http://npm.im/mysql2).
 
 [![NPM version](https://img.shields.io/npm/v/mysequel.svg)](http://badge.fury.io/js/mysequel)
 [![Licensed MIT](https://img.shields.io/npm/l/mysequel.svg)](https://github.com/ChiperSoft/mysequel/blob/master/LICENSE.txt)
-[![Nodejs 4+](https://img.shields.io/badge/node.js-%3E=_4 LTS-brightgreen.svg)](http://nodejs.org)
+[![Nodejs 4+](https://img.shields.io/badge/node.js-%3E=_4%20LTS-brightgreen.svg)](http://nodejs.org)
 [![Downloads](http://img.shields.io/npm/dm/mysequel.svg)](http://npmjs.org/mysequel)
 [![Build Status](https://img.shields.io/travis/ChiperSoft/mysequel.svg)](https://travis-ci.org/ChiperSoft/mysequel)
 
