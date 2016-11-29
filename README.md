@@ -8,6 +8,14 @@ A best-practices abstraction of [node-mysql2](http://npm.im/mysql2).
 [![Downloads](http://img.shields.io/npm/dm/mysequel.svg)](http://npmjs.org/mysequel)
 [![Build Status](https://img.shields.io/travis/ChiperSoft/mysequel.svg)](https://travis-ci.org/ChiperSoft/mysequel)
 
+## Installation
+
+```
+npm install mysql2 mysequel
+```
+
+The mysql2 library must be installed as a peer dependency.
+
 ## What MySequel provides over using node-mysql or mysql2 Pools directly:
 
 _Please note that the below is NOT a criticism of the excellent work put forward by [Felix Geisendörfer](https://github.com/felixge), [Doug Wilson](https://github.com/dougwilson) and [Andrey Sidorov](https://github.com/sidorares), for whom this library would not be possible without._
@@ -25,7 +33,7 @@ _Please note that the below is NOT a criticism of the excellent work put forward
    Anyone who has used node-mysql or mysql2 in production knows the pains when the database server hangs up and the pool doesn't notice it to remove those dead connections. MySequel automatically pings all idle connections in the pool every 30 seconds to ensure that no stale connections can remain around.
 
 5. **Query Retry on Connection Failure**   
-   If connection pinging fails to catch a dead connection in time, MySequel will automatically retry any queries that fail due to a connection error.
+   Queries performed directly from the pool object will automatically retry on a different connection if the query fails due to a connection error.
 
 6. **Usable stack traces**   
    Due to the internal structure of mysql2, stack traces produced by query errors never point at the query which caused the error. MySequel replaces these unusable stack traces with a trace leading to the originating caller.
@@ -36,25 +44,63 @@ _Please note that the below is NOT a criticism of the excellent work put forward
 8. **Sensible Defaults**   
    Unless overridden, MySequel always performs queries as prepared statements (which makes repeat queries faster) with named parameters turned on (which lets queries be easier to read and write).
 
-## Installation
-
-```
-npm install mysql2 mysequel
-```
-
-The mysql2 library must be installed as a peer dependency.
-
 ## Usage
 
-- `pool = mysequel(config)` - Takes a configuration object and returns a MySequel pool wrapper. Note, no connection is opened until a query is performed. See below for config options.
+```js
+var mysequel = require('mysequel');
+var pool = mysequel(config);
+```
+
+The MySequel factory function takes a configuration object and returns a MySequel pool wrapper. Note, no connection is opened until a query is performed or a connection requested.
+
+### Config Options
+
+The options object takes all of the same [connection](https://github.com/felixge/node-mysql#connection-options) and
+[pool](https://github.com/felixge/node-mysql#pool-options) options from node-mysql and node-mysql2. Some of these are included
+below for the sake of easier reference.
+
+**Connection Options:** These options only apply at pool initialization.
+
+* `host`: The hostname of the database you are connecting to. (Default: `localhost`)
+* `port`: The port number to connect to. (Default: `3306`)
+* `user`: The MySQL user to authenticate as.
+* `password`: The password of that MySQL user.
+* `database`: Name of the database to use for this connection (Optional).
+* `connectionLimit`: The maximum number of connections to create at once. (Default: `10`)
+* `charset`: The charset for the connection. This is called "collation" in the SQL-level
+  of MySQL (like `utf8_general_ci`). If a SQL-level charset is specified (like `utf8mb4`)
+  then the default collation for that charset is used. (Default: `'UTF8_GENERAL_CI'`)
+* `timezone`: The timezone used to store local dates. (Default: `'local'`)
+* `connectionBootstrap`: An array of queries to perform, in order, when a new connection is created. May be either strings or
+  objects, as described above for single argument queries. (Default: `null`)
+* `ping`: Options for connection pinging. Set to false to disable pings entirely.
+* `ping.frequency`: Ping interval (Default: `30000`)
+* `ping.query`: Query to perform each ping. (Default: `'SELECT 1+1 as two;'`)
+* `ping.expectedResult`: Expected return from the query. If return does not match, the connection is closed. (Default: `[ { two: 2 } ]`)
+
+**Query Options:** These may be defined at the pool level, connection level, transaction level, or query level.
+
+* [`namedPlaceholders`](https://github.com/sidorares/node-mysql2/blob/master/documentation/Extras.md#named-placeholders):
+  If true, queries will be parsed for named parameters. (Default: `true`)
+* `prepared`: Boolean value to control if queries should be executed as prepared statements using mysql2's `execute()` function.
+  Prepared statements send the query text to the server separately from the parameter data, caching the query to avoid parsing
+  time on subsequent calls of the same query.
+* `retry`: Should a query should be retried on connection failure. Forced to false for queries made on connection or transaction
+  objects. (Default: `true`)
+* `retryCount`: How many times a query should be retried after a failure. (Default: `2`)
+* `tidyStacks`: Boolean value to control if errors should have their call stack corrected to point at originating code (there is a very minuscule performance cost). (Default: `true`),
+* `transactionAutoRollback`: If a query error occurs during a transaction, automatically rollback the transaction. (Default: `true`)
+
+
+### Connection Pooling
 
 - `mysql2Pool = pool.getPool()` - Returns the raw mysql2 Pool object used internally. If the pool has not yet been initialized by a query request, this does so.
 
-- `pool.getConnection() => connection` - Returns a promise that resolves with an active connection *after* any bootstrap queries have completed. Note, you must call `connection.release()` once you are finished with this connection to allow it to return to the pool.
+- `pool.getConnection([options]) => connection` - Returns a promise that resolves with an active connection *after* any bootstrap queries have completed. Note, you must call `connection.release()` once you are finished with this connection to allow it to return to the pool.
 
 - `pool.getDisposedConnection() => connection` - Returns a [Bluebird Disposer](http://bluebirdjs.com/docs/api/disposer.html) for a connection, which automatically releases the connection after usage. See [Promise.using()](http://bluebirdjs.com/docs/api/promise.using.html) for more details.
 
-- `pool.getRawConnection()` && `pool.getDisposedRawConnection()` - Same as above, but resolves with the mysql Connection object instead of a MySequel connection.
+- `pool.getRawConnection()` && `pool.getDisposedRawConnection()` - Same as above, but resolves with a mysql PoolConnection object instead of a MySequel connection wrapper.
 
 - `pool.close() => null` - Returns a promise that resolves after all pending queries have completed and all connections in the pool have terminated.
 
@@ -102,14 +148,15 @@ pool.query({
 
 The MySequel pool emits several query life-cycle events.
 
-* `query-start` (method, query): Fires when a query is invoked.
-* `query-retry` (err, method, query, duration): Fires at the start of a query retry due to a fatal error
-* `query-success` (method, query, duration): Fires when a query finishes successfully
-* `query-error` (err, method, query, duration): Fires when a query fails, after exhausting retries.
-* `query-done` (err, method, query, duration): Fires when a query finishes, regardless of success or failure (err will be null if success).
-* `connection` (connection): Fires when the mysql2 opens a new connection, before bootstrapping.
-* `connection-ready` (connection): Fires after bootstrapping has finished.
-* `connection-ping-out` (err): Fires when a connection is removed from the pool by the ping operation.
+* `query-start` (`method`, `query`): Fires when a query is invoked.
+* `query-retry` (`err`, `method`, `query`, `duration`): Fires at the start of a query retry due to a fatal error
+* `query-success` (`method`, `query`, `duration`): Fires when a query finishes successfully
+* `query-error` (`err`, `method`, `query`, `duration`): Fires when a query fails, after exhausting retries.
+* `query-done` (`err`, `method`, `query`, `duration`): Fires when a query finishes, regardless of success or failure (err will be null if success).
+* `connection` (`connection`): Fires when the mysql2 opens a new connection, before bootstrapping.
+* `connection-ready` (`connection`): Fires after bootstrapping has finished.
+* `connection-ping-out` (`err`): Fires when a connection is removed from the pool by the ping operation.
+
 
 ## Example Recommended Usage
 
@@ -164,41 +211,3 @@ define('getById', () => {
 	});
 });
 ```
-
-## Config Options
-
-The options object takes all of the same [connection](https://github.com/felixge/node-mysql#connection-options) and
-[pool](https://github.com/felixge/node-mysql#pool-options) options from node-mysql and node-mysql2. Some of these are included
-below for the sake of easier reference.
-
-**Connection Options:**
-
-* `host`: The hostname of the database you are connecting to. (Default: `localhost`)
-* `port`: The port number to connect to. (Default: `3306`)
-* `user`: The MySQL user to authenticate as.
-* `password`: The password of that MySQL user.
-* `database`: Name of the database to use for this connection (Optional).
-* `connectionLimit`: The maximum number of connections to create at once. (Default: `10`)
-* `charset`: The charset for the connection. This is called "collation" in the SQL-level
-  of MySQL (like `utf8_general_ci`). If a SQL-level charset is specified (like `utf8mb4`)
-  then the default collation for that charset is used. (Default: `'UTF8_GENERAL_CI'`)
-* `timezone`: The timezone used to store local dates. (Default: `'local'`)
-* `connectionBootstrap`: An array of queries to perform, in order, when a new connection is created. May be either strings or
-  objects, as described above for single argument queries. (Default: `null`)
-* `ping`: Options for connection pinging. Set to false to disable pings entirely.
-* `ping.frequency`: Ping interval (Default: 30000)
-* `ping.query`: Query to perform each ping. (Default: `'SELECT 1+1 as two;'`)
-* `ping.expectedResult`: Expected return from the query. If return does not match, the connection is closed. (Default: `[ { two: 2 } ]`)
-
-**Query Options:**
-
-* [`namedPlaceholders`](https://github.com/sidorares/node-mysql2/blob/master/documentation/Extras.md#named-placeholders):
-  If true, queries will be parsed for named parameters. (Default: `true`)
-* `prepared`: Boolean value to control if queries should be executed as prepared statements using mysql2's `execute()` function.
-  Prepared statements send the query text to the server separately from the parameter data, caching the query to avoid parsing
-  time on subsequent calls of the same query.
-* `retry`: Should a query should be retried on connection failure. Forced to false for queries made on connection or transaction
-  objects. (Default: `true`)
-* `retryCount`: How many times a query should be retried after a failure. (Default: `2`)
-* `tidyStacks`: Boolean value to control if errors should have their call stack corrected to point at originating code (there is a very minuscule performance cost). (Default: `true`),
-* `transactionAutoRollback`: If a query error occurs during a transaction, automatically rollback the transaction. (Default: `true`)
