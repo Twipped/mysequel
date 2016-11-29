@@ -27,9 +27,6 @@ module.exports = exports = function makeQuint (options) {
 	var pingTimer;
 	var quint = new Emitter();
 
-	quint.on('query-success', (method, query, duration) => quint.emit('query-done', null, method, query, duration));
-	quint.on('query-error', (err, method, query, duration) => quint.emit('query-done', err, method, query, duration));
-
 	quint._quint = 'pool';
 
 	quint.options = options;
@@ -147,10 +144,12 @@ module.exports = exports = function makeQuint (options) {
 			return tryQuery().then(
 				(result) => {
 					quint.emit('query-success', key, query, Date.now() - time);
+					quint.emit('query-done', null, key, query, Date.now() - time);
 					return result;
 				},
 				(err) => {
 					quint.emit('query-error', err, key, query, Date.now() - time);
+					quint.emit('query-done', err, key, query, Date.now() - time);
 					throw err;
 				}
 			);
@@ -231,10 +230,12 @@ module.exports = exports = function makeQuint (options) {
 						.then(
 							(result) => {
 								quint.emit('query-success', key, query, Date.now() - time);
+								quint.emit('query-done', null, key, query, Date.now() - time);
 								return result;
 							},
 							(err) => {
 								quint.emit('query-error', err, key, query, Date.now() - time);
+								quint.emit('query-done', err, key, query, Date.now() - time);
 								return Promise.reject(err);
 							}
 						);
