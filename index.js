@@ -7,7 +7,7 @@ var promiseQuery        = require('./lib/promise-query');
 var pingIdleConnections = require('./lib/ping');
 var merge = require('lodash.merge');
 
-module.exports = exports = function makeQuint (options) {
+module.exports = exports = function makeMySequel (options) {
 	options = merge({
 		prepared: true,
 		namedPlaceholders: true,
@@ -25,13 +25,13 @@ module.exports = exports = function makeQuint (options) {
 
 	var pool;
 	var pingTimer;
-	var quint = new Emitter();
+	var mysequel = new Emitter();
 
-	quint._quint = 'pool';
+	mysequel._mysequel = 'pool';
 
-	quint.options = options;
+	mysequel.options = options;
 
-	quint.getPool = () => {
+	mysequel.getPool = () => {
 		if (pool) return pool;
 
 		pool = mysql.createPool(options);
@@ -53,37 +53,37 @@ module.exports = exports = function makeQuint (options) {
 				);
 
 				connection.isReady.then(
-					() => quint.emit('connection-ready', connection),
+					() => mysequel.emit('connection-ready', connection),
 					() => null // absorb exceptions so we don't get an unhandled rejection from this tail
 				);
 
-				quint.emit('connection', connection);
+				mysequel.emit('connection', connection);
 			} else {
-				quint.emit('connection', connection);
-				quint.emit('connection-ready', connection);
+				mysequel.emit('connection', connection);
+				mysequel.emit('connection-ready', connection);
 			}
 		});
 
 		if (options.ping && typeof options.ping === 'object' && options.ping.frequency) {
 			pingTimer = setInterval(() => pingIdleConnections(pool, options).then((removed) => {
-				removed.forEach((err) => quint.emit('connection-ping-out', err));
+				removed.forEach((err) => mysequel.emit('connection-ping-out', err));
 			}), options.ping.frequency);
 		}
 
 		return pool;
 	};
 
-	quint.getRawConnection = function getRawConnection () {
-		return Promise.fromCallback((cb) => quint.getPool().getConnection(cb))
+	mysequel.getRawConnection = function getRawConnection () {
+		return Promise.fromCallback((cb) => mysequel.getPool().getConnection(cb))
 			.then((c) => c.isReady || c);
 	};
 
-	quint.getDisposedRawConnection = function getRawConnection () {
-		return quint.getRawConnection().disposer((connection) => connection.release());
+	mysequel.getDisposedRawConnection = function getRawConnection () {
+		return mysequel.getRawConnection().disposer((connection) => connection.release());
 	};
 
-	quint.close = () => {
-		quint.emit('closing');
+	mysequel.close = () => {
+		mysequel.emit('closing');
 
 		if (!pool) return Promise.resolve();
 
@@ -97,7 +97,7 @@ module.exports = exports = function makeQuint (options) {
 			pool = null;
 		})
 		.then(function done () {
-			quint.emit('closed');
+			mysequel.emit('closed');
 		});
 	};
 
@@ -105,7 +105,7 @@ module.exports = exports = function makeQuint (options) {
 		var time = Date.now();
 		var fn = queries[key];
 
-		quint[key] = (sql, values, opts) => {
+		mysequel[key] = (sql, values, opts) => {
 			var query = typeof sql === 'object' ? sql : { sql, values };
 
 			query = Object.assign({
@@ -121,11 +121,11 @@ module.exports = exports = function makeQuint (options) {
 				query.retry = false;
 			}
 
-			quint.emit('query-start', key, query);
+			mysequel.emit('query-start', key, query);
 
 			var retries = query.retry ? query.retryCount : 0;
 			function tryQuery () {
-				return Promise.using(query.connection || quint.getDisposedRawConnection(), (connection) => {
+				return Promise.using(query.connection || mysequel.getDisposedRawConnection(), (connection) => {
 					var q = Object.create(query);
 					q.connection = connection;
 
@@ -133,7 +133,7 @@ module.exports = exports = function makeQuint (options) {
 				}).catch((err) => {
 					if (err.fatal && retries > 0) {
 						retries--;
-						quint.emit('query-retry', err, key, query, Date.now() - time);
+						mysequel.emit('query-retry', err, key, query, Date.now() - time);
 						return tryQuery();
 					}
 
@@ -143,13 +143,13 @@ module.exports = exports = function makeQuint (options) {
 
 			return tryQuery().then(
 				(result) => {
-					quint.emit('query-success', key, query, Date.now() - time);
-					quint.emit('query-done', null, key, query, Date.now() - time);
+					mysequel.emit('query-success', key, query, Date.now() - time);
+					mysequel.emit('query-done', null, key, query, Date.now() - time);
 					return result;
 				},
 				(err) => {
-					quint.emit('query-error', err, key, query, Date.now() - time);
-					quint.emit('query-done', err, key, query, Date.now() - time);
+					mysequel.emit('query-error', err, key, query, Date.now() - time);
+					mysequel.emit('query-done', err, key, query, Date.now() - time);
 					throw err;
 				}
 			);
@@ -157,7 +157,7 @@ module.exports = exports = function makeQuint (options) {
 		};
 	});
 
-	quint.queryStream = (sql, values, opts) => {
+	mysequel.queryStream = (sql, values, opts) => {
 		var query = typeof sql === 'object' ? sql : { sql, values };
 
 		query = Object.assign({
@@ -166,13 +166,13 @@ module.exports = exports = function makeQuint (options) {
 		}, query, opts || {});
 
 		if (!query.connection) {
-			query.connection = quint.getPool();
+			query.connection = mysequel.getPool();
 		}
 
 		return query.connection.query(query, query.values);
 	};
 
-	quint.getConnection = (cOptions) => {
+	mysequel.getConnection = (cOptions) => {
 		cOptions = Object.assign({
 			prepared: options.prepared,
 			namedPlaceholders: options.namedPlaceholders,
@@ -181,11 +181,11 @@ module.exports = exports = function makeQuint (options) {
 			connection: null,
 		}, cOptions);
 
-		return Promise.resolve(cOptions.connection || quint.getRawConnection()).then((connection) => {
+		return Promise.resolve(cOptions.connection || mysequel.getRawConnection()).then((connection) => {
 			var open = true;
 
 			var connectionWrapper = {
-				_quint: 'connection',
+				_mysequel: 'connection',
 
 				release (passthru) {
 					open = false;
@@ -224,18 +224,18 @@ module.exports = exports = function makeQuint (options) {
 						connection,
 					});
 
-					quint.emit('query-start', key, query);
+					mysequel.emit('query-start', key, query);
 
 					return fn(query)
 						.then(
 							(result) => {
-								quint.emit('query-success', key, query, Date.now() - time);
-								quint.emit('query-done', null, key, query, Date.now() - time);
+								mysequel.emit('query-success', key, query, Date.now() - time);
+								mysequel.emit('query-done', null, key, query, Date.now() - time);
 								return result;
 							},
 							(err) => {
-								quint.emit('query-error', err, key, query, Date.now() - time);
-								quint.emit('query-done', err, key, query, Date.now() - time);
+								mysequel.emit('query-error', err, key, query, Date.now() - time);
+								mysequel.emit('query-done', err, key, query, Date.now() - time);
 								return Promise.reject(err);
 							}
 						);
@@ -256,7 +256,7 @@ module.exports = exports = function makeQuint (options) {
 		});
 	};
 
-	quint.transaction = (tOptions) => {
+	mysequel.transaction = (tOptions) => {
 		tOptions = Object.assign({
 			prepared: options.prepared,
 			namedPlaceholders: options.namedPlaceholders,
@@ -266,7 +266,7 @@ module.exports = exports = function makeQuint (options) {
 		}, tOptions);
 
 		function start () {
-			return quint.getConnection(tOptions)
+			return mysequel.getConnection(tOptions)
 				.then((connection) =>
 					Promise.fromCallback((cb) => connection.rawConnection.beginTransaction(cb))
 						.then(() => connection));
@@ -332,6 +332,6 @@ module.exports = exports = function makeQuint (options) {
 		});
 	};
 
-	return quint;
+	return mysequel;
 };
 

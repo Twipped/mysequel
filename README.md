@@ -1,52 +1,52 @@
-#quint
+#mysequel
 
 A best-practices abstraction of [node-mysql2](http://npm.im/mysql2).
 
-[![NPM version](https://img.shields.io/npm/v/quint.svg)](http://badge.fury.io/js/quint)
-[![Licensed MIT](https://img.shields.io/npm/l/quint.svg)](https://github.com/ChiperSoft/quint/blob/master/LICENSE.txt)
+[![NPM version](https://img.shields.io/npm/v/mysequel.svg)](http://badge.fury.io/js/mysequel)
+[![Licensed MIT](https://img.shields.io/npm/l/mysequel.svg)](https://github.com/ChiperSoft/mysequel/blob/master/LICENSE.txt)
 [![Nodejs 4+](https://img.shields.io/badge/node.js-%3E=_4 LTS-brightgreen.svg)](http://nodejs.org)
-[![Downloads](http://img.shields.io/npm/dm/quint.svg)](http://npmjs.org/quint)
-[![Build Status](https://img.shields.io/travis/ChiperSoft/quint.svg)](https://travis-ci.org/ChiperSoft/quint)
+[![Downloads](http://img.shields.io/npm/dm/mysequel.svg)](http://npmjs.org/mysequel)
+[![Build Status](https://img.shields.io/travis/ChiperSoft/mysequel.svg)](https://travis-ci.org/ChiperSoft/mysequel)
 
-## What Quint provides over using node-mysql or mysql2 Pools directly:
+## What MySequel provides over using node-mysql or mysql2 Pools directly:
 
 _Please note that the below is NOT a criticism of the excellent work put forward by [Felix Geisendörfer](https://github.com/felixge), [Doug Wilson](https://github.com/dougwilson) and [Andrey Sidorov](https://github.com/sidorares), for whom this library would not be possible without._
 
 1. **Promises**   
-   While mysql2 provides a promise wrapper of its own, it is surface level only and actually makes it harder to work with connections and pools directly. The mysql2 wrapper also does not extend its coverage to transactions, which Quint provides.
+   While mysql2 provides a promise wrapper of its own, it is surface level only and actually makes it harder to work with connections and pools directly. The mysql2 wrapper also does not extend its coverage to transactions, which MySequel provides.
 
 2. **Connection Bootstrapping**   
-   Sometimes an application needs to be able to perform some commands against every new connection before that connection can be used for querying (eg, connection settings). While it is possible to execute queries against a connection immediately on creation, there is no assurance that those queries will fire before the query that triggered the creation of the connection. Quint always waits for bootstrap queries to finish before using a connection.
+   Sometimes an application needs to be able to perform some commands against every new connection before that connection can be used for querying (eg, connection settings). While it is possible to execute queries against a connection immediately on creation, there is no assurance that those queries will fire before the query that triggered the creation of the connection. MySequel always waits for bootstrap queries to finish before using a connection.
 
 3. **Shortcut Queries**   
-   If a query is only returning a single row, single column, or a single column within a single row, it can be convenient to directly query those values. Quint provides `queryRow`, `queryColumn` and `queryCell` for just such situations. `queryInsert` is also provided for when all you want back is an auto-incremented id.
+   If a query is only returning a single row, single column, or a single column within a single row, it can be convenient to directly query those values. MySequel provides `queryRow`, `queryColumn` and `queryCell` for just such situations. `queryInsert` is also provided for when all you want back is an auto-incremented id.
 
 4. **Connection Pinging**   
-   Anyone who has used node-mysql or mysql2 in production knows the pains when the database server hangs up and the pool doesn't notice it to remove those dead connections. Quint automatically pings all idle connections in the pool every 30 seconds to ensure that no stale connections can remain around.
+   Anyone who has used node-mysql or mysql2 in production knows the pains when the database server hangs up and the pool doesn't notice it to remove those dead connections. MySequel automatically pings all idle connections in the pool every 30 seconds to ensure that no stale connections can remain around.
 
 5. **Query Retry on Connection Failure**   
-   If connection pinging fails to catch a dead connection in time, Quint will automatically retry any queries that fail due to a connection error.
+   If connection pinging fails to catch a dead connection in time, MySequel will automatically retry any queries that fail due to a connection error.
 
 6. **Usable stack traces**   
-   Due to the internal structure of mysql2, stack traces produced by query errors never point at the query which caused the error. Quint replaces these unusable stack traces with a trace leading to the originating caller.
+   Due to the internal structure of mysql2, stack traces produced by query errors never point at the query which caused the error. MySequel replaces these unusable stack traces with a trace leading to the originating caller.
 
 7. **Debug & Logging hooks**   
-   Quint pools provide event emitter hooks for query and connection life-cycles, allowing for logging of all queries performed.
+   MySequel pools provide event emitter hooks for query and connection life-cycles, allowing for logging of all queries performed.
 
 8. **Sensible Defaults**   
-   Unless overridden, Quint always performs queries as prepared statements (which makes repeat queries faster) with named parameters turned on (which lets queries be easier to read and write).
+   Unless overridden, MySequel always performs queries as prepared statements (which makes repeat queries faster) with named parameters turned on (which lets queries be easier to read and write).
 
 ## Installation
 
 ```
-npm install mysql2 quint
+npm install mysql2 mysequel
 ```
 
 The mysql2 library must be installed as a peer dependency.
 
 ## Usage
 
-- `pool = quint(config)` - Takes a configuration object and returns a Quint pool wrapper. Note, no connection is opened until a query is performed. See below for config options.
+- `pool = mysequel(config)` - Takes a configuration object and returns a MySequel pool wrapper. Note, no connection is opened until a query is performed. See below for config options.
 
 - `mysql2Pool = pool.getPool()` - Returns the raw mysql2 Pool object used internally. If the pool has not yet been initialized by a query request, this does so.
 
@@ -54,7 +54,7 @@ The mysql2 library must be installed as a peer dependency.
 
 - `pool.getDisposedConnection() => connection` - Returns a [Bluebird Disposer](http://bluebirdjs.com/docs/api/disposer.html) for a connection, which automatically releases the connection after usage. See [Promise.using()](http://bluebirdjs.com/docs/api/promise.using.html) for more details.
 
-- `pool.getRawConnection()` && `pool.getDisposedRawConnection()` - Same as above, but resolves with the mysql Connection object instead of a Quint connection.
+- `pool.getRawConnection()` && `pool.getDisposedRawConnection()` - Same as above, but resolves with the mysql Connection object instead of a MySequel connection.
 
 - `pool.close() => null` - Returns a promise that resolves after all pending queries have completed and all connections in the pool have terminated.
 
@@ -100,7 +100,7 @@ pool.query({
 
 ### Events
 
-The Quint pool emits several query life-cycle events.
+The MySequel pool emits several query life-cycle events.
 
 * `query-start` (method, query): Fires when a query is invoked.
 * `query-retry` (err, method, query, duration): Fires at the start of a query retry due to a fatal error
@@ -117,11 +117,11 @@ Create a module that represents your database:
 
 ```js
 // mysql.js
-var quint = require('quint');
+var mysequel = require('mysequel');
 var config = require('your/config/library');
 var log = require('your/logging/library');
 
-var mysql = quint(config.mysql);
+var mysql = mysequel(config.mysql);
 mysql.on('query-complete', (type, query, duration) => {
 	log.debug(query, `${type} query completed in ${duration}ms`);
 });

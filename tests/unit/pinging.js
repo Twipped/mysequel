@@ -7,7 +7,7 @@ var proxyquire = require('proxyquire').noCallThru();
 var pingIdleConnections = proxyquire('../../lib/ping', {
 	'./promise-query': stepper.as('promiseQuery'),
 });
-var quint = proxyquire('../../', {
+var mysequel = proxyquire('../../', {
 	'./lib/promise-query': stepper.as('promiseQuery'),
 	'./lib/ping': stepper.as('pingIdleConnections'),
 });
@@ -25,7 +25,7 @@ suite('ping', (s) => {
 	var pool;
 
 	s.beforeEach((done) => {
-		db = quint({
+		db = mysequel({
 			ping: {
 				frequency: 0,
 			},
@@ -146,7 +146,7 @@ suite('ping', (s) => {
 test('ping interval fires events for dead connections', (t) => {
 	stepper.reset(true);
 
-	var db = quint({
+	var db = mysequel({
 		ping: {
 			frequency: 190,
 		},

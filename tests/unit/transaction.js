@@ -4,7 +4,7 @@ var stepper = require('stepperbox')();
 var proxyquire = require('proxyquire').noCallThru();
 var makeMockPool = require('../lib/mockRawPool');
 var Promise = require('bluebird');
-var quint = proxyquire('../../', {
+var mysequel = proxyquire('../../', {
 	mysql2: {
 		createPool: stepper.as('mysql.createPool'),
 	},
@@ -15,7 +15,7 @@ var quint = proxyquire('../../', {
 });
 
 suite('transactions', (s) => {
-	var db = quint({ ping: false });
+	var db = mysequel({ ping: false });
 	db.getPool = makeMockPool(stepper);
 
 	s.beforeEach((done) => {

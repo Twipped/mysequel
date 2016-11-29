@@ -1,7 +1,7 @@
 
 var suite = require('tapsuite');
 var mktmpio = require('../lib/mktmpio');
-var quint = require('../../');
+var mysequel = require('../../');
 var es = require('event-stream');
 
 suite('mysql integration', (s) => {
@@ -24,7 +24,7 @@ suite('mysql integration', (s) => {
 	);
 
 	s.beforeEach((done) => {
-		pool = quint({
+		pool = mysequel({
 			host: db.host,
 			port: db.port,
 			user: 'root',

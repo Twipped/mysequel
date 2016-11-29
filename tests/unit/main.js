@@ -4,7 +4,7 @@ var stepper = require('stepperbox')();
 var proxyquire = require('proxyquire').noCallThru();
 var makeMockPool = require('../lib/mockRawPool');
 var Promise = require('bluebird');
-var quint = proxyquire('../../', {
+var mysequel = proxyquire('../../', {
 	mysql2: {
 		createPool: stepper.as('mysql.createPool'),
 	},
@@ -23,7 +23,7 @@ test('bootstrapping', (t) => {
 		],
 		ping: false,
 	};
-	var db = quint(opts);
+	var db = mysequel(opts);
 
 	stepper.reset(true);
 	stepper.add((method, options) => {
@@ -85,7 +85,7 @@ test('bootstrapping error', (t) => {
 		],
 		ping: false,
 	};
-	var db = quint(opts);
+	var db = mysequel(opts);
 
 	stepper.reset(true);
 	stepper.add((method, options) => {
@@ -132,7 +132,7 @@ test('bootstrapping error', (t) => {
 
 test('pool shutdown', (t) => {
 	t.plan(12);
-	var db = quint({ ping: false });
+	var db = mysequel({ ping: false });
 
 	stepper.reset(true);
 	stepper.add((method, options) => {
