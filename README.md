@@ -46,7 +46,7 @@ The mysql2 library must be installed as a peer dependency.
 
 ## Usage
 
-- `pool = quint(config)` - Takes a configuration object and returns a Quint pool wrapper. Note, no connection is opened until a query is performed.
+- `pool = quint(config)` - Takes a configuration object and returns a Quint pool wrapper. Note, no connection is opened until a query is performed. See below for config options.
 
 - `mysql2Pool = pool.getPool()` - Returns the raw mysql2 Pool object used internally. If the pool has not yet been initialized by a query request, this does so.
 
@@ -62,9 +62,9 @@ The mysql2 library must be installed as a peer dependency.
 
 - `pool.transaction([options]) => transaction` - Returns a promise that resolves with a transaction object after a connection has been retrieved and a transaction started.
 
-- `transaction.commit([passthru]) => passthru` - Returns a promise that resolves with the provided value after the connection has committed.
+- `transaction.commit([passthru]) => passthru` - Returns a promise that resolves with the provided value after the connection has committed. This releases the connection the transaction is attached to.
 
-- `transaction.rollback([passthru]) => passthru` - Returns a promise that resolves with the provided value after the connection has rolled back.
+- `transaction.rollback([passthru]) => passthru` - Returns a promise that resolves with the provided value after the connection has rolled back. This releases the connection the transaction is attached to.
 
 - `transaction.isActive` - Boolean property which identifies if the transaction is still open.
 
@@ -97,6 +97,19 @@ pool.query({
 	retry: false
 })
 ```
+
+### Events
+
+The Quint pool emits several query life-cycle events.
+
+* `query-start` (method, query): Fires when a query is invoked.
+* `query-retry` (err, method, query, duration): Fires at the start of a query retry due to a fatal error
+* `query-success` (method, query, duration): Fires when a query finishes successfully
+* `query-error` (err, method, query, duration): Fires when a query fails, after exhausting retries.
+* `query-done` (err, method, query, duration): Fires when a query finishes, regardless of success or failure (err will be null if success).
+* `connection` (connection): Fires when the mysql2 opens a new connection, before bootstrapping.
+* `connection-ready` (connection): Fires after bootstrapping has finished.
+* `connection-ping-out` (err): Fires when a connection is removed from the pool by the ping operation.
 
 ## Example Recommended Usage
 
@@ -151,3 +164,41 @@ define('getById', () => {
 	});
 });
 ```
+
+## Config Options
+
+The options object takes all of the same [connection](https://github.com/felixge/node-mysql#connection-options) and
+[pool](https://github.com/felixge/node-mysql#pool-options) options from node-mysql and node-mysql2. Some of these are included
+below for the sake of easier reference.
+
+**Connection Options:**
+
+* `host`: The hostname of the database you are connecting to. (Default: `localhost`)
+* `port`: The port number to connect to. (Default: `3306`)
+* `user`: The MySQL user to authenticate as.
+* `password`: The password of that MySQL user.
+* `database`: Name of the database to use for this connection (Optional).
+* `connectionLimit`: The maximum number of connections to create at once. (Default: `10`)
+* `charset`: The charset for the connection. This is called "collation" in the SQL-level
+  of MySQL (like `utf8_general_ci`). If a SQL-level charset is specified (like `utf8mb4`)
+  then the default collation for that charset is used. (Default: `'UTF8_GENERAL_CI'`)
+* `timezone`: The timezone used to store local dates. (Default: `'local'`)
+* `connectionBootstrap`: An array of queries to perform, in order, when a new connection is created. May be either strings or
+  objects, as described above for single argument queries. (Default: `null`)
+* `ping`: Options for connection pinging. Set to false to disable pings entirely.
+* `ping.frequency`: Ping interval (Default: 30000)
+* `ping.query`: Query to perform each ping. (Default: `'SELECT 1+1 as two;'`)
+* `ping.expectedResult`: Expected return from the query. If return does not match, the connection is closed. (Default: `[ { two: 2 } ]`)
+
+**Query Options:**
+
+* [`namedPlaceholders`](https://github.com/sidorares/node-mysql2/blob/master/documentation/Extras.md#named-placeholders):
+  If true, queries will be parsed for named parameters. (Default: `true`)
+* `prepared`: Boolean value to control if queries should be executed as prepared statements using mysql2's `execute()` function.
+  Prepared statements send the query text to the server separately from the parameter data, caching the query to avoid parsing
+  time on subsequent calls of the same query.
+* `retry`: Should a query should be retried on connection failure. Forced to false for queries made on connection or transaction
+  objects. (Default: `true`)
+* `retryCount`: How many times a query should be retried after a failure. (Default: `2`)
+* `tidyStacks`: Boolean value to control if errors should have their call stack corrected to point at originating code (there is a very minuscule performance cost). (Default: `true`),
+* `transactionAutoRollback`: If a query error occurs during a transaction, automatically rollback the transaction. (Default: `true`)
