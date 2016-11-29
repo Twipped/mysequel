@@ -1,4 +1,5 @@
 
+var test = require('tap').test;
 var suite = require('tapsuite');
 var stepper = require('stepperbox')();
 var Promise = require('bluebird');
@@ -8,6 +9,7 @@ var pingIdleConnections = proxyquire('../../lib/ping', {
 });
 var quint = proxyquire('../../', {
 	'./lib/promise-query': stepper.as('promiseQuery'),
+	'./lib/ping': stepper.as('pingIdleConnections'),
 });
 
 function mockConnection (index) {
@@ -137,6 +139,71 @@ suite('ping', (s) => {
 			.then((result) => {
 				t.equal(result.length, 0, 'pingIdleConnections should return an empty array');
 			});
+	});
+
+});
+
+test('ping interval fires events for dead connections', (t) => {
+	stepper.reset(true);
+
+	var db = quint({
+		ping: {
+			frequency: 190,
+		},
+	});
+
+	db.on('connection-ping-out', stepper.as('event:connection-ping-out'));
+
+	var pool = db.getPool();
+	pool.query   = stepper.as('pool.query');
+	pool.execute = stepper.as('pool.execute');
+	pool.getConnection = stepper.as('pool.getConnection');
+	pool.end = stepper.as('pool.end');
+
+	stepper.add((method) => {
+		t.equal(method, 'pingIdleConnections', 'called pingIdleConnections - 1');
+		return Promise.resolve([ new Error('First Error'), new Error('Second Error') ]);
+	});
+
+	stepper.add((method, err) => {
+		t.equal(method, 'event:connection-ping-out', 'fired event:connection-ping-out');
+		t.equal(err.message, 'First Error');
+	});
+
+	stepper.add((method, err) => {
+		t.equal(method, 'event:connection-ping-out', 'fired event:connection-ping-out');
+		t.equal(err.message, 'Second Error');
+	});
+
+	stepper.add((method) => {
+		t.equal(method, 'pingIdleConnections', 'called pingIdleConnections - 2');
+		return Promise.resolve([]);
+	});
+
+	stepper.add((method) => {
+		t.equal(method, 'pingIdleConnections', 'called pingIdleConnections - 3');
+		return Promise.resolve([ new Error('Third Error') ]);
+	});
+
+	stepper.add((method, err) => {
+		t.equal(method, 'event:connection-ping-out', 'fired event:connection-ping-out');
+		t.equal(err.message, 'Third Error');
+	});
+
+	stepper.add((method) => {
+		t.equal(method, 'pingIdleConnections', 'called pingIdleConnections - 4');
+		return Promise.resolve([]);
+	});
+
+	stepper.add((method) => {
+		t.equal(method, 'pingIdleConnections', 'called pingIdleConnections - 5');
+		setImmediate(() => db.close());
+		return Promise.resolve([]);
+	});
+
+	stepper.add((method) => {
+		t.equal(method, 'pool.end', 'called pool.end');
+		t.end();
 	});
 
 });
