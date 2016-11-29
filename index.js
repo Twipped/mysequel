@@ -219,8 +219,6 @@ module.exports = exports = function makeQuint (options) {
 						transactionAutoRollback: cOptions.transactionAutoRollback,
 						tidyStacks: cOptions.tidyStacks,
 					}, query, opts || {}, {
-						retry: false,
-						retryCount: 0,
 						connection,
 					});
 
@@ -308,8 +306,6 @@ module.exports = exports = function makeQuint (options) {
 						transactionAutoRollback: tOptions.transactionAutoRollback,
 						tidyStacks: tOptions.tidyStacks,
 					}, query, opts || {}, {
-						retry: false,
-						retryCount: 0,
 						connection,
 					});
 
