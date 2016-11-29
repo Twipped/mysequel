@@ -38,7 +38,11 @@ _Please note that the below is NOT a criticism of the excellent work put forward
 
 ## Installation
 
-NPM: `npm install quint`
+```
+npm install mysql2 quint
+```
+
+The mysql2 library must be installed as a peer dependency.
 
 ## Usage
 
