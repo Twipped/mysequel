@@ -27,6 +27,9 @@ module.exports = exports = function makeQuint (options) {
 	var pingTimer;
 	var quint = new Emitter();
 
+	quint.on('query-success', (method, query, duration) => quint.emit('query-done', null, method, query, duration));
+	quint.on('query-error', (err, method, query, duration) => quint.emit('query-done', err, method, query, duration));
+
 	quint._quint = 'pool';
 
 	quint.options = options;
@@ -143,7 +146,7 @@ module.exports = exports = function makeQuint (options) {
 
 			return tryQuery().then(
 				(result) => {
-					quint.emit('query-complete', key, query, Date.now() - time);
+					quint.emit('query-success', key, query, Date.now() - time);
 					return result;
 				},
 				(err) => {
@@ -227,7 +230,7 @@ module.exports = exports = function makeQuint (options) {
 					return fn(query)
 						.then(
 							(result) => {
-								quint.emit('query-complete', key, query, Date.now() - time);
+								quint.emit('query-success', key, query, Date.now() - time);
 								return result;
 							},
 							(err) => {
