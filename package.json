@@ -23,7 +23,6 @@
   },
   "dependencies": {
     "bluebird": "~3.4.6",
-    "eslint-plugin-promise": "~3.3.2",
     "lodash.merge": "~4.6.0"
   },
   "peerDependencies": {
