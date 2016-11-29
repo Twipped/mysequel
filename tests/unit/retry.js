@@ -2,8 +2,8 @@
 var suite = require('tapsuite');
 var stepper = require('stepperbox')();
 var proxyquire = require('proxyquire').noCallThru();
-var Emitter = require('events').EventEmitter;
 var Promise = require('bluebird');
+var makeMockPool = require('../lib/mockRawPool');
 var quint = proxyquire('../../', {
 	mysql2: {
 		createPool: stepper.as('mysql.createPool'),
@@ -23,26 +23,7 @@ function FatalError (msg) {
 suite('promise-query', (s) => {
 
 	var db = quint({ ping: false });
-	db.getPool = function () {
-		var pool = new Emitter();
-		pool.getConnection = function (cb) {
-			var conn = {
-				_isMockedConnection: true,
-				beginTransaction: stepper.as('connection.beginTransaction'),
-				query: stepper.as('connection.query'),
-				execute: stepper.as('connection.execute'),
-				release: stepper.as('connection.release'),
-				destroy: stepper.as('connection.destroy'),
-				commit: stepper.as('connection.commit'),
-				rollback: stepper.as('connection.rollback'),
-			};
-			pool.once('connection', (c) => cb(null, c));
-			pool.emit('connection', conn);
-		};
-		pool.on('connection', stepper.as('pool.getConnection'));
-
-		return pool;
-	};
+	db.getPool = makeMockPool(stepper);
 
 	s.beforeEach((done) => {
 		stepper.reset(true);

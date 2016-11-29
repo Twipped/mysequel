@@ -2,7 +2,7 @@
 var test = require('tap').test;
 var stepper = require('stepperbox')();
 var proxyquire = require('proxyquire').noCallThru();
-var Emitter = require('events').EventEmitter;
+var makeMockPool = require('../lib/mockRawPool');
 var Promise = require('bluebird');
 var quint = proxyquire('../../', {
 	mysql2: {
@@ -41,19 +41,7 @@ test('bootstrapping', (t) => {
 			ping: false,
 		}, 'with options object');
 
-		var pool = new Emitter();
-		pool.getConnection = function (cb) {
-			var conn = {
-				_isMockedConnection: true,
-				release: stepper.as('connection.release'),
-				destroy: stepper.as('connection.destroy'),
-			};
-			pool.once('connection', (c) => cb(null, c));
-			pool.emit('connection', conn);
-		};
-		pool.on('connection', stepper.as('pool.getConnection'));
-
-		return pool;
+		return makeMockPool(stepper)();
 	});
 
 	stepper.add((method) => {
@@ -115,19 +103,7 @@ test('bootstrapping error', (t) => {
 			ping: false,
 		}, 'with options object');
 
-		var pool = new Emitter();
-		pool.getConnection = function (cb) {
-			var conn = {
-				_isMockedConnection: true,
-				release: stepper.as('connection.release'),
-				destroy: stepper.as('connection.destroy'),
-			};
-			pool.once('connection', (c) => cb(null, c));
-			pool.emit('connection', conn);
-		};
-		pool.on('connection', stepper.as('pool.getConnection'));
-
-		return pool;
+		return makeMockPool(stepper)();
 	});
 
 	stepper.add((method) => {
@@ -172,20 +148,7 @@ test('pool shutdown', (t) => {
 			ping: false,
 		}, 'with options object');
 
-		var pool = new Emitter();
-		pool.getConnection = function (cb) {
-			var conn = {
-				_isMockedConnection: true,
-				release: stepper.as('connection.release'),
-				destroy: stepper.as('connection.destroy'),
-			};
-			pool.once('connection', (c) => cb(null, c));
-			pool.emit('connection', conn);
-		};
-		pool.end = stepper.as('pool.end');
-		pool.on('connection', stepper.as('pool.getConnection'));
-
-		return pool;
+		return makeMockPool(stepper)();
 	});
 
 	stepper.add((method) => {
