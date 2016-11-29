@@ -8,6 +8,7 @@
     "test:unit": "tap tests/unit",
     "test:integration": "tap tests/integration",
     "test:cover": "tap --coverage tests/unit tests/integration",
+    "test:travis": "npm run lint && npm run test:cover",
     "lint": "eslint ./"
   },
   "keywords": [],
