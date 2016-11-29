@@ -39,7 +39,7 @@ module.exports = exports = function makeQuint (options) {
 			if (Array.isArray(options.connectionBootstrap)) {
 				var bootstrap = Promise.each(
 					options.connectionBootstrap,
-					(q) => promiseQuery(Object.assign({ connection, prepared: false, retry: false }, q))
+					(q) => promiseQuery(Object.assign(q, null, { connection, prepared: false, retry: false }))
 				);
 
 				connection.isReady = bootstrap.then(
@@ -117,22 +117,41 @@ module.exports = exports = function makeQuint (options) {
 				connection: null,
 			}, query, opts || {});
 
+			if (query.connection) {
+				query.retry = false;
+			}
+
 			quint.emit('query-start', key, query);
 
-			return Promise.using(query.connection || quint.getDisposedRawConnection(), (connection) => {
-				query.connection = connection;
-				return fn(query)
-					.then(
-						(result) => {
-							quint.emit('query-complete', key, query, Date.now() - time);
-							return result;
-						},
-						(err) => {
-							quint.emit('query-error', err, key, query, Date.now() - time);
-							throw err;
-						}
-					);
-			});
+			var retries = query.retry ? query.retryCount : 0;
+			function tryQuery () {
+				return Promise.using(query.connection || quint.getDisposedRawConnection(), (connection) => {
+					var q = Object.create(query);
+					q.connection = connection;
+
+					return fn(q);
+				}).catch((err) => {
+					if (err.fatal && retries > 0) {
+						retries--;
+						quint.emit('query-retry', err, key, query, Date.now() - time);
+						return tryQuery();
+					}
+
+					return Promise.reject(err);
+				});
+			}
+
+			return tryQuery().then(
+				(result) => {
+					quint.emit('query-complete', key, query, Date.now() - time);
+					return result;
+				},
+				(err) => {
+					quint.emit('query-error', err, key, query, Date.now() - time);
+					throw err;
+				}
+			);
+
 		};
 	});
 
