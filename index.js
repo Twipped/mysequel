@@ -102,10 +102,10 @@ module.exports = exports = function makeMySequel (options) {
 	};
 
 	Object.keys(queries).forEach((key) => {
-		var time = Date.now();
 		var fn = queries[key];
 
 		mysequel[key] = (sql, values, opts) => {
+			var time = Date.now();
 			var query = typeof sql === 'object' ? sql : { sql, values };
 
 			query = Object.assign({
