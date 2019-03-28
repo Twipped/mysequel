@@ -23,6 +23,22 @@ module.exports = exports = function makeMySequel (options) {
 		},
 	}, options);
 
+	var mysqlOptions = {};
+	var omit = [
+		'prepared',
+		'transactionAutoRollback',
+		'retry',
+		'retryCount',
+		'tidyStacks',
+		'connectionBootstrap',
+		'ping',
+	];
+
+	// copy anything that isn't ours into the mysql2 options object
+	Object.keys(options)
+		.filter((k) => omit.indexOf(k) === -1)
+		.forEach((k) => { mysqlOptions[k] = options[k]; });
+
 	var pool;
 	var pingTimer;
 	var mysequel = new Emitter();
@@ -34,7 +50,7 @@ module.exports = exports = function makeMySequel (options) {
 	mysequel.getPool = () => {
 		if (pool) return pool;
 
-		pool = mysql.createPool(options);
+		pool = mysql.createPool(mysqlOptions);
 		pool.on('connection', (connection) => {
 			if (Array.isArray(options.connectionBootstrap)) {
 				var bootstrap = Promise.each(

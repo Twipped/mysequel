@@ -124,7 +124,7 @@ suite('ping', (s) => {
 			.then((result) => {
 				t.equal(result.length, 2, 'pingIdleConnections should return an array of two errors');
 				t.equal(result[0].code, 'EPIPE', 'the first is an EPIPE error');
-				t.equal(result[1].name, 'AssertionError', 'the second is an assertion error');
+				t.equal(result[1].name, 'AssertionError [ERR_ASSERTION]', 'the second is an assertion error');
 			});
 
 	});

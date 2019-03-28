@@ -28,18 +28,7 @@ test('bootstrapping', (t) => {
 	stepper.reset(true);
 	stepper.add((method, options) => {
 		t.equal(method, 'mysql.createPool', 'called mysql.createPool');
-		t.deepEqual(options, {
-			prepared: true,
-			namedPlaceholders: true,
-			transactionAutoRollback: true,
-			retry: true,
-			retryCount: 2,
-			tidyStacks: true,
-			connectionBootstrap: [
-				{ sql: 'SHOW TABLES' },
-			],
-			ping: false,
-		}, 'with options object');
+		t.deepEqual(options, { namedPlaceholders: true }, 'with options object');
 
 		return makeMockPool(stepper)();
 	});
@@ -90,18 +79,7 @@ test('bootstrapping error', (t) => {
 	stepper.reset(true);
 	stepper.add((method, options) => {
 		t.equal(method, 'mysql.createPool', 'called mysql.createPool');
-		t.deepEqual(options, {
-			prepared: true,
-			namedPlaceholders: true,
-			transactionAutoRollback: true,
-			retry: true,
-			retryCount: 2,
-			tidyStacks: true,
-			connectionBootstrap: [
-				{ sql: 'SHOW TABLES' },
-			],
-			ping: false,
-		}, 'with options object');
+		t.deepEqual(options, { namedPlaceholders: true }, 'with options object');
 
 		return makeMockPool(stepper)();
 	});
@@ -137,16 +115,7 @@ test('pool shutdown', (t) => {
 	stepper.reset(true);
 	stepper.add((method, options) => {
 		t.equal(method, 'mysql.createPool', 'called mysql.createPool');
-		t.deepEqual(options, {
-			prepared: true,
-			namedPlaceholders: true,
-			transactionAutoRollback: true,
-			retry: true,
-			retryCount: 2,
-			tidyStacks: true,
-			connectionBootstrap: null,
-			ping: false,
-		}, 'with options object');
+		t.deepEqual(options, { namedPlaceholders: true }, 'with options object');
 
 		return makeMockPool(stepper)();
 	});
