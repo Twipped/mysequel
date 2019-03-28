@@ -130,9 +130,9 @@ suite('mysql integration', (s) => {
 				hire_date  = :dateHired
 		`;
 		var data = {
-			firstName: 'Jarvis',
+			firstName: 'Jocelyn',
 			lastName: 'Badgley',
-			gender: 'M',
+			gender: 'F',
 			dateBorn: '1990-12-31',
 			dateHired: new Date('2012-01-01'),
 		};

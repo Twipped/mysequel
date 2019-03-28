@@ -15,14 +15,14 @@
     "node": ">=6.0"
   },
   "keywords": [],
-  "author": "Jarvis Badgley <chiper@chipersoft.com> (http://chipersoft.com/)",
+  "author": "Jocelyn Badgley <joc@twipped.com>",
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/ChiperSoft/mysequel.git"
+    "url": "https://github.com/Twipped/mysequel.git"
   },
   "bugs": {
-    "url": "https://github.com/ChiperSoft/mysequel/issues"
+    "url": "https://github.com/Twipped/mysequel/issues"
   },
   "dependencies": {
     "bluebird": "^3.4.0",
