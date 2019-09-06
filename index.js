@@ -39,8 +39,7 @@ module.exports = exports = function makeMySequel (options) {
 		.filter((k) => omit.indexOf(k) === -1)
 		.forEach((k) => { mysqlOptions[k] = options[k]; });
 
-	var pool;
-	var pingTimer;
+	var pool, pingTimer;
 	var mysequel = new Emitter();
 
 	mysequel._mysequel = 'pool';
@@ -112,9 +111,9 @@ module.exports = exports = function makeMySequel (options) {
 			pool.end(callback);
 			pool = null;
 		})
-		.then(function done () {
-			mysequel.emit('closed');
-		});
+			.then(function done () {
+				mysequel.emit('closed');
+			});
 	};
 
 	Object.keys(queries).forEach((key) => {
@@ -153,7 +152,7 @@ module.exports = exports = function makeMySequel (options) {
 						return tryQuery();
 					}
 
-					return Promise.reject(err);
+					throw err;
 				});
 			}
 
@@ -252,7 +251,7 @@ module.exports = exports = function makeMySequel (options) {
 							(err) => {
 								mysequel.emit('query-error', err, key, query, Date.now() - time);
 								mysequel.emit('query-done', err, key, query, Date.now() - time);
-								return Promise.reject(err);
+								throw err;
 							}
 						);
 				};
@@ -339,7 +338,7 @@ module.exports = exports = function makeMySequel (options) {
 							transaction.destroy();
 						}
 
-						return Promise.reject(err);
+						throw err;
 					});
 				};
 			});

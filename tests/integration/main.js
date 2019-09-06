@@ -5,8 +5,7 @@ var mysequel = require('../../');
 var es = require('event-stream');
 
 suite('mysql integration', (s) => {
-	var pool;
-	var db;
+	var pool, db;
 
 	s.before(() => mktmpio.create()
 		.then((_db) => {

@@ -21,8 +21,7 @@ function mockConnection (index) {
 }
 
 suite('ping', (s) => {
-	var db;
-	var pool;
+	var db, pool;
 
 	s.beforeEach((done) => {
 		db = mysequel({
