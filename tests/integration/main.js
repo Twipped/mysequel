@@ -1,4 +1,6 @@
+/* eslint no-unreachable:0 */
 
+var Promise = require('bluebird');
 var suite = require('tapsuite');
 var mktmpio = require('../lib/mktmpio');
 var mysequel = require('../../');
@@ -179,7 +181,7 @@ suite('mysql integration', (s) => {
 		stream.pipe(writer);
 	});
 
-	s.test('transaction - insert and rollback', (t) => {
+	s.test('transaction - insert and rollback', async (t) => {
 		var sql = `
 		  INSERT INTO departments SET dept_no = :dNum, dept_name = :dName
 		`;
@@ -187,31 +189,24 @@ suite('mysql integration', (s) => {
 		var data = { dNum: 'd010', dName: 'Shipping & Receiving' };
 		var initialCount;
 
-		return pool.transaction().then((transaction) =>
-			pool.queryCell('SELECT COUNT(*) FROM departments')
-				.then((count) => {
-					t.pass('Initial count is ' + count);
-					initialCount = count;
-					return transaction.queryInsert(sql, data);
-				})
-				.then(() => {
-					t.pass('Inserted OK');
-					return transaction.queryCell('SELECT COUNT(*) FROM departments');
-				})
-				.then((count) => {
-					t.equal(count, initialCount + 1, 'In-transaction count is one greater than start count');
-					return transaction.rollback();
-				})
-				.then(() =>
-					pool.queryCell('SELECT COUNT(*) FROM departments')
-				)
-				.then((count) => {
-					t.equal(count, initialCount, 'Final count matches original count');
-				})
-		);
+		const transaction = await pool.transaction();
+		let count = await pool.queryCell('SELECT COUNT(*) FROM departments');
+
+		t.pass('Initial count is ' + count);
+		initialCount = count;
+		await transaction.queryInsert(sql, data);
+		t.pass('Inserted OK');
+
+		count = await transaction.queryCell('SELECT COUNT(*) FROM departments');
+		t.equal(count, initialCount + 1, 'In-transaction count is one greater than start count');
+
+		await transaction.rollback();
+
+		count = await pool.queryCell('SELECT COUNT(*) FROM departments');
+		t.equal(count, initialCount, 'Final count matches original count');
 	});
 
-	s.test('transaction - insert and commit', (t) => {
+	s.test('transaction - insert and commit', async (t) => {
 		var sql = `
 		  INSERT INTO departments SET dept_no = :dNum, dept_name = :dName
 		`;
@@ -219,31 +214,24 @@ suite('mysql integration', (s) => {
 		var data = { dNum: 'd010', dName: 'Shipping & Receiving' };
 		var initialCount;
 
-		return pool.transaction().then((transaction) =>
-			pool.queryCell('SELECT COUNT(*) FROM departments')
-				.then((count) => {
-					t.pass('Initial count is ' + count);
-					initialCount = count;
-					return transaction.queryInsert(sql, data);
-				})
-				.then(() => {
-					t.pass('Inserted OK');
-					return transaction.queryCell('SELECT COUNT(*) FROM departments');
-				})
-				.then((count) => {
-					t.equal(count, initialCount + 1, 'In-transaction count is one greater than start count');
-					return transaction.commit();
-				})
-				.then(() =>
-					pool.queryCell('SELECT COUNT(*) FROM departments')
-				)
-				.then((count) => {
-					t.equal(count, initialCount + 1, 'Final count matches the new count');
-				})
-		);
+		const transaction = await pool.transaction();
+		let count = await pool.queryCell('SELECT COUNT(*) FROM departments');
+
+		t.pass('Initial count is ' + count);
+		initialCount = count;
+		await transaction.queryInsert(sql, data);
+		t.pass('Inserted OK');
+
+		count = await transaction.queryCell('SELECT COUNT(*) FROM departments');
+		t.equal(count, initialCount + 1, 'In-transaction count is one greater than start count');
+
+		await transaction.commit();
+
+		count = await pool.queryCell('SELECT COUNT(*) FROM departments');
+		t.equal(count, initialCount + 1, 'Final count matches the new count');
 	});
 
-	s.test('transaction - query error triggers rollback', (t) => {
+	s.test('transaction - query error triggers rollback', async (t) => {
 		var sql = `
 		  INSERT INTO departments SET dept_no = :dNum, dept_name = :dName
 		`;
@@ -251,36 +239,30 @@ suite('mysql integration', (s) => {
 		var data = { dNum: 'd011', dName: 'Cafeteria' };
 		var initialCount;
 
-		return pool.transaction().then((transaction) =>
-			pool.queryCell('SELECT COUNT(*) FROM departments')
-				.then((count) => {
-					t.pass('Initial count is ' + count);
-					initialCount = count;
-					return transaction.queryInsert(sql, data);
-				})
-				.then(() => {
-					t.pass('Inserted OK');
-					return transaction.queryCell('SELECT COUNT(*) FROM departments');
-				})
-				.then((count) => {
-					t.equal(count, initialCount + 1, 'in-transaction count is one greater than start count');
-					return transaction.queryInsert(sql, data);
-				})
-				.then(t.fail.bind(t, 'Second insert should not have worked'))
-				.catch((err) => {
-					t.equal(err.code, 'ER_DUP_ENTRY', 'got back error from bad insert');
-					return pool.queryCell('SELECT COUNT(*) FROM departments');
-				})
-				.then(() =>
-					pool.queryCell('SELECT COUNT(*) FROM departments')
-				)
-				.then((count) => {
-					t.equal(count, initialCount, 'Final count matches the original count');
-				})
-		);
+		const transaction = await pool.transaction();
+		let count = await pool.queryCell('SELECT COUNT(*) FROM departments');
+
+		t.pass('Initial count is ' + count);
+		initialCount = count;
+		await transaction.queryInsert(sql, data);
+		t.pass('Inserted OK');
+
+		count = await transaction.queryCell('SELECT COUNT(*) FROM departments');
+		t.equal(count, initialCount + 1, 'in-transaction count is one greater than start count');
+
+		try {
+			await transaction.queryInsert(sql, data);
+			t.fail('Second insert should not have worked');
+			return;
+		} catch (err) {
+			t.equal(err.code, 'ER_DUP_ENTRY', 'got back error from bad insert');
+		}
+
+		count = await transaction.queryCell('SELECT COUNT(*) FROM departments');
+		t.equal(count, initialCount, 'Final count matches the original count');
 	});
 
-	s.test('transaction - queryStream', (t) => {
+	s.test('transaction - queryStream', async (t) => {
 		var expected = [
 			{
 				first_name: 'Sumant',
@@ -304,22 +286,18 @@ suite('mysql integration', (s) => {
 			},
 		];
 
-		pool.transaction().then((transaction) => {
-			var stream = transaction.queryStream(q, { gender: 'F' }).stream();
+		const transaction = await pool.transaction();
+		const stream = transaction.queryStream(q, { gender: 'F' }).stream();
 
-			var writer = es.writeArray((err, results) => {
-				t.error(err);
-				t.deepEqual(results, expected, 'results match');
-				transaction.rollback()
-					.then(t.pass, t.fail)
-					.finally(t.end);
+		const results = await new Promise((resolve, reject) => {
+			const writer = es.writeArray((err, res) => {
+				if (err) return reject(err);
+				resolve(res);
 			});
-
 			stream.pipe(writer);
-		}).catch((err) => {
-			t.error(err);
-			t.end();
 		});
+
+		t.deepEqual(results, expected, 'results match');
 	});
 
 });
