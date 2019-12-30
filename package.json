@@ -12,7 +12,7 @@
     "lint": "eslint --fix '**/*.js'"
   },
   "engines": {
-    "node": ">=6.0"
+    "node": ">=8.15"
   },
   "keywords": [],
   "author": "Jocelyn Badgley <joc@twipped.com>",

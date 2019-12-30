@@ -42,7 +42,7 @@ suite('connections', (s) => {
 				.then(() => connection.release('PASSTHRU'))
 				.then((result) => {
 					t.equal(result, 'PASSTHRU', 'got passed through value');
-				})
+				}),
 		);
 	});
 });

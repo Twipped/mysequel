@@ -177,7 +177,7 @@ suite('promise-query', (s) => {
 
 		return db.mockQuery(q).then(
 			() => t.fail('query should have failed'),
-			(err) => t.equal(err.message, 'ERROR', 'got back error')
+			(err) => t.equal(err.message, 'ERROR', 'got back error'),
 		);
 	});
 
@@ -219,7 +219,7 @@ suite('promise-query', (s) => {
 
 		return db.mockQuery(q).then(
 			() => t.fail('query should have failed'),
-			(err) => t.equal(err.message, 'ERROR', 'got back error')
+			(err) => t.equal(err.message, 'ERROR', 'got back error'),
 		);
 	});
 

@@ -102,7 +102,7 @@ suite('transactions', (s) => {
 					(err) => {
 						t.equal(err.message, 'SOMETHING', 'rollback passed thru its input');
 						t.equal(trans.isOpen, false, 'transaction has closed');
-					}
+					},
 				);
 		});
 	});
@@ -142,7 +142,7 @@ suite('transactions', (s) => {
 					(err) => {
 						t.equal(err.message, 'I HURT MYSELF', 'original error was passed thru');
 						t.equal(trans.isOpen, false, 'transaction has closed');
-					}
+					},
 				);
 		});
 	});
@@ -179,7 +179,7 @@ suite('transactions', (s) => {
 					(err) => {
 						t.equal(err.message, 'FATAL ERROR', 'original error was passed thru');
 						t.equal(trans.isOpen, false, 'transaction has closed');
-					}
+					},
 				);
 		});
 	});

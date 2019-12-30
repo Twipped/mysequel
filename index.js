@@ -54,7 +54,7 @@ module.exports = exports = function makeMySequel (options) {
 			if (Array.isArray(options.connectionBootstrap)) {
 				var bootstrap = Promise.each(
 					options.connectionBootstrap,
-					(q) => promiseQuery(Object.assign(q, null, { connection, prepared: false, retry: false }))
+					(q) => promiseQuery(Object.assign(q, null, { connection, prepared: false, retry: false })),
 				);
 
 				connection.isReady = bootstrap.then(
@@ -64,12 +64,12 @@ module.exports = exports = function makeMySequel (options) {
 						// and re-throw the error
 						connection.destroy();
 						throw err;
-					}
+					},
 				);
 
 				connection.isReady.then(
 					() => mysequel.emit('connection-ready', connection),
-					() => null // absorb exceptions so we don't get an unhandled rejection from this tail
+					() => null, // absorb exceptions so we don't get an unhandled rejection from this tail
 				);
 
 				mysequel.emit('connection', connection);
@@ -166,7 +166,7 @@ module.exports = exports = function makeMySequel (options) {
 					mysequel.emit('query-error', err, key, query, Date.now() - time);
 					mysequel.emit('query-done', err, key, query, Date.now() - time);
 					throw err;
-				}
+				},
 			);
 
 		};
@@ -252,7 +252,7 @@ module.exports = exports = function makeMySequel (options) {
 								mysequel.emit('query-error', err, key, query, Date.now() - time);
 								mysequel.emit('query-done', err, key, query, Date.now() - time);
 								throw err;
-							}
+							},
 						);
 				};
 			});

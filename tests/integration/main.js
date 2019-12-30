@@ -19,11 +19,11 @@ suite('mysql integration', (s) => {
 		})
 		.then(() => {
 			s.comment('Database populated');
-		})
+		}),
 	);
 
 	s.after(() => mktmpio.destroy()
-		.then(() => s.comment('Database destroyed'))
+		.then(() => s.comment('Database destroyed')),
 	);
 
 	s.beforeEach((done) => {

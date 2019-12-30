@@ -32,7 +32,7 @@ exports.populate = function () {
 		password: current.password,
 	}).then((connection) =>
 		Promise.each(schema, (sql) => connection.query(sql))
-			.then(() => connection.end())
+			.then(() => connection.end()),
 	);
 };
 

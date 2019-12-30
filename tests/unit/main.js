@@ -104,7 +104,7 @@ test('bootstrapping error', (t) => {
 	return db.mockQuery('QUERY', { nope: true })
 		.then(
 			() => t.fail('query should have failed'),
-			(err) => t.equal(err.message, 'I HURT MYSELF')
+			(err) => t.equal(err.message, 'I HURT MYSELF'),
 		);
 });
 
@@ -145,7 +145,7 @@ test('pool shutdown', (t) => {
 	return db.mockQuery('QUERY', { nope: true })
 		.then(
 			() => t.fail('query should have failed'),
-			(err) => t.equal(err.message, 'I HURT MYSELF')
+			(err) => t.equal(err.message, 'I HURT MYSELF'),
 		)
 		.then(() => db.close())
 		.then(() => {

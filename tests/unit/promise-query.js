@@ -82,7 +82,7 @@ suite('promise-query', (s) => {
 		return promiseQuery(q)
 			.then(
 				() => t.fail('query should have failed'),
-				(err) => t.equal(err.message, 'ERROR', 'got back error')
+				(err) => t.equal(err.message, 'ERROR', 'got back error'),
 			);
 	});
 
@@ -113,7 +113,7 @@ suite('promise-query', (s) => {
 					var stack = err.stack.split('\n');
 					t.equal(stack[0], 'Error: ' + err.message, 'stack matches error messages');
 					t.ok(stack[1].indexOf('at promiseQuery') > -1, 'Top of the stack is promiseQuery');
-				}
+				},
 			);
 	});
 });
