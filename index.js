@@ -5,7 +5,7 @@ var mysql   = require('mysql2');
 var Promise = require('bluebird');
 var promiseQuery        = require('./lib/promise-query');
 var pingIdleConnections = require('./lib/ping');
-var merge = require('lodash.merge');
+var merge = require('./lib/utils').merge;
 
 module.exports = exports = function makeMySequel (options) {
 	options = merge({
