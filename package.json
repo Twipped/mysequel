@@ -25,22 +25,22 @@
     "url": "https://github.com/Twipped/mysequel/issues"
   },
   "dependencies": {
-    "bluebird": "~3.5.5"
+    "bluebird": "~3.7.2"
   },
   "peerDependencies": {
-    "mysql2": "^1.1.0"
+    "mysql2": ">=1.1.0"
   },
   "devDependencies": {
-    "eslint": "~6.3.0",
+    "eslint": "~6.8.0",
     "eslint-config-twipped": "~3.3.0",
-    "eslint-plugin-node": "~10.0.0",
+    "eslint-plugin-node": "~11.0.0",
     "eslint-plugin-promise": "~4.2.1",
     "event-stream": "~4.0.1",
     "mktmpio": "~1.0.0-10",
-    "mysql2": "~1.7.0",
+    "mysql2": "~2.1.0",
     "proxyquire": "~2.1.3",
     "stepperbox": "~1.4.0",
-    "tap": "~14.6.1",
+    "tap": "~14.10.5",
     "tapsuite": "~2.0.1"
   },
   "files": [
